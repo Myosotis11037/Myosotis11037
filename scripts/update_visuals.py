@@ -1,23 +1,37 @@
-"""Render self-hosted profile visuals from public GitHub data."""
+"""Render a project showcase and public development activity for the profile."""
 
 from __future__ import annotations
 
+import base64
+from datetime import date
+from html import escape
 import json
 import math
 import os
-from datetime import date
 from pathlib import Path
-import random
 import subprocess
 from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parents[1]
 USER = os.environ.get("PROFILE_USER", "Myosotis11037")
-INK = "#eef1ff"
-MUTED = "#8994bc"
-LILAC = "#bdacff"
-BLUE = "#7bd9f5"
+PROJECT = "karaoke-studio/karaoke-studio"
+INK = "#f1efff"
+MUTED = "#9ca7c4"
+LILAC = "#c3b0ff"
+BLUE = "#83e2e4"
+
+
+def fetch(url: str, token: str = "", payload: dict | None = None) -> bytes:
+    headers = {"User-Agent": "Myosotis11037-profile-visuals"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+    request = Request(url, headers=headers,
+                      data=json.dumps(payload).encode() if payload is not None else None)
+    with urlopen(request, timeout=45) as response:
+        return response.read()
 
 
 def github_data() -> dict:
@@ -27,67 +41,66 @@ def github_data() -> dict:
             ["gh", "auth", "token"], text=True, stderr=subprocess.DEVNULL
         ).strip()
     query = """
-    query($login: String!, $after: String) {
+    query($login: String!) {
       user(login: $login) {
-        followers { totalCount }
-        repositories(first: 100, after: $after, ownerAffiliations: OWNER,
-                     privacy: PUBLIC) {
-          totalCount
-          pageInfo { hasNextPage endCursor }
-          nodes { stargazerCount isFork }
-        }
         contributionsCollection {
+          totalCommitContributions
+          totalPullRequestContributions
           contributionCalendar {
             totalContributions
             weeks { contributionDays { date contributionCount } }
           }
+          commitContributionsByRepository(maxRepositories: 100) {
+            repository { nameWithOwner }
+            contributions { totalCount }
+          }
+        }
+      }
+      repository(owner: "karaoke-studio", name: "karaoke-studio") {
+        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+          totalSize
+          edges { size node { name } }
         }
       }
     }
     """
-    after = None
-    stars = 0
-    while True:
-        payload = json.dumps({"query": query, "variables": {"login": USER, "after": after}})
-        request = Request(
-            "https://api.github.com/graphql",
-            data=payload.encode(),
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
-                     "User-Agent": "Myosotis11037-profile-visuals"},
-        )
-        with urlopen(request, timeout=45) as response:
-            result = json.load(response)
-        if result.get("errors"):
-            raise RuntimeError(json.dumps(result["errors"]))
-        user = result["data"]["user"]
-        if not user:
-            raise RuntimeError("Profile user not found")
-        repos = user["repositories"]
-        stars += sum(repo["stargazerCount"] for repo in repos["nodes"] if not repo["isFork"])
-        if not repos["pageInfo"]["hasNextPage"]:
-            return {"followers": user["followers"]["totalCount"],
-                    "repositories": repos["totalCount"], "stars": stars,
-                    "calendar": user["contributionsCollection"]["contributionCalendar"]}
-        after = repos["pageInfo"]["endCursor"]
+    result = json.loads(fetch("https://api.github.com/graphql", token,
+                              {"query": query, "variables": {"login": USER}}))
+    if result.get("errors"):
+        raise RuntimeError(json.dumps(result["errors"]))
+    user = result["data"]["user"]
+    project = result["data"]["repository"]
+    if not user or not project:
+        raise RuntimeError("Public profile or featured project not found")
+    release = json.loads(fetch(f"https://api.github.com/repos/{PROJECT}/releases/latest", token))
+    screenshot = fetch(f"https://raw.githubusercontent.com/{PROJECT}/main/assets/shot-subtitle.png")
+    return {"activity": user["contributionsCollection"], "languages": project["languages"],
+            "version": release["tag_name"], "screenshot": base64.b64encode(screenshot).decode()}
 
 
-def svg(height: int, body: str, extra_defs: str = "", styles: str = "") -> str:
+def text(x: float, y: float, value: object, size: float = 14,
+         color: str = INK, weight: int = 400, extra: str = "") -> str:
+    return (f'<text x="{x}" y="{y}" fill="{color}" font-size="{size}" '
+            f'font-weight="{weight}" {extra}>{escape(str(value))}</text>')
+
+
+def svg(height: int, body: str, defs: str = "", styles: str = "") -> str:
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="960" height="{height}" viewBox="0 0 960 {height}" fill="none">
 <defs>
   <linearGradient id="panel" x1="0" y1="0" x2="960" y2="{height}" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#11182e"/><stop offset=".5" stop-color="#14172d"/><stop offset="1" stop-color="#0d1425"/>
+    <stop stop-color="#131a30"/><stop offset=".6" stop-color="#17182e"/><stop offset="1" stop-color="#101927"/>
   </linearGradient>
-  <linearGradient id="signal" x1="0" y1="0" x2="960" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#7bd9f5"/><stop offset=".5" stop-color="#bdacff"/><stop offset="1" stop-color="#ebbbeb"/></linearGradient>
-  <radialGradient id="halo"><stop stop-color="#8d79eb" stop-opacity=".32"/><stop offset="1" stop-color="#8d79eb" stop-opacity="0"/></radialGradient>
-  <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
-  {extra_defs}
+  <linearGradient id="signal" x1="0" y1="0" x2="960" y2="0" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#83e2e4"/><stop offset=".55" stop-color="#c3b0ff"/><stop offset="1" stop-color="#f0a7c8"/>
+  </linearGradient>
+  <radialGradient id="halo"><stop stop-color="#9273db" stop-opacity=".3"/><stop offset="1" stop-color="#9273db" stop-opacity="0"/></radialGradient>
+  {defs}
 </defs>
 <style>
-  text {{ font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }}
-  .breathe {{ animation: breathe 5s ease-in-out infinite; }}
-  @keyframes breathe {{ 0%,100% {{opacity:.45}} 50% {{opacity:1}} }}
+  text {{ font-family: "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }}
+  .mono {{ font-family: Consolas, "SFMono-Regular", monospace; }}
   {styles}
-  @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; }} }}
+  @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important; }} }}
 </style>
 {body}
 </svg>
@@ -95,125 +108,127 @@ def svg(height: int, body: str, extra_defs: str = "", styles: str = "") -> str:
 
 
 def panel(height: int) -> str:
-    return f'<rect x=".5" y=".5" width="959" height="{height-1}" rx="22" fill="url(#panel)" stroke="#303653"/>'
+    return f'<rect x=".5" y=".5" width="959" height="{height-1}" rx="24" fill="url(#panel)" stroke="#343650"/>'
 
 
-def header() -> str:
-    rng = random.Random(11037)
-    parts = [panel(300), '<ellipse cx="480" cy="135" rx="310" ry="205" fill="url(#halo)"/>']
-    # Quiet astronomical grid, with no labels or invented telemetry.
-    for x in range(40, 960, 40):
-        parts.append(f'<path d="M{x} 24V276" stroke="#b2bfff" opacity=".025"/>')
-    for y in range(30, 300, 30):
-        parts.append(f'<path d="M24 {y}H936" stroke="#b2bfff" opacity=".025"/>')
-    for i in range(65):
-        x, y = rng.randint(30, 930), rng.randint(24, 265)
-        radius = rng.choice([.7, .9, 1.2, 1.6])
-        parts.append(f'<circle class="breathe" cx="{x}" cy="{y}" r="{radius}" fill="{BLUE if i % 3 else LILAC}" style="animation-delay:-{i % 8}s"/>')
-    for x, y in [(125, 78), (804, 56), (845, 185), (220, 180)]:
-        parts.append(f'<path d="M{x-5} {y}h10m-5-5v10" stroke="#c7d6ff" opacity=".65"/>')
-    parts.append('<path d="M89 156L149 110L214 126L265 83M714 199L762 150L822 163L887 124" stroke="#8c9fcf" stroke-opacity=".23"/>')
-    for x, y in [(89,156),(149,110),(214,126),(265,83),(714,199),(762,150),(822,163),(887,124)]:
-        parts.append(f'<circle cx="{x}" cy="{y}" r="2.3" fill="#a6b9e8"/>')
-    # Edge-on orbits frame a five-petal forget-me-not, with a crescent core.
-    parts.append('<ellipse cx="480" cy="135" rx="184" ry="59" transform="rotate(-16 480 135)" stroke="url(#signal)" stroke-opacity=".38"/>')
-    parts.append('<ellipse cx="480" cy="135" rx="150" ry="83" transform="rotate(25 480 135)" stroke="#99b5ed" stroke-opacity=".18"/>')
-    parts.append('<circle cx="480" cy="135" r="92" stroke="#aaa0e9" stroke-opacity=".15" stroke-dasharray="2 9"/>')
-    parts.append('<g class="orbit"><circle cx="656.8" cy="84.3" r="4" fill="#a7eaff"/><circle cx="656.8" cy="84.3" r="8" fill="#7bd9f5" opacity=".16"/></g>')
-    parts.append('<circle cx="480" cy="135" r="67" fill="#10192f" fill-opacity=".8" stroke="#8ca0d1" stroke-opacity=".25"/>')
-    petals = []
-    for angle in range(0, 360, 72):
-        petals.append(f'<path d="M480 132C451 119 449 89 467 83C489 74 506 104 480 132Z" transform="rotate({angle} 480 135)"/>')
-    flower = ''.join(petals)
-    parts.append(f'<g fill="url(#signal)" opacity=".22" filter="url(#glow)">{flower}</g>')
-    parts.append(f'<g fill="url(#petal)" stroke="url(#signal)" stroke-width="1.3">{flower}</g>')
-    parts.append('<circle cx="480" cy="135" r="12" fill="#151c33" stroke="#ccbeff"/>')
-    parts.append('<path d="M484 126a9 9 0 1 0 4 13a8 8 0 0 1-4-13Z" fill="#d6d0ff"/>')
-    # A restrained spectrum feels musical; this is decoration, not activity data.
-    for i in range(87):
-        x = 48 + i * 10
-        envelope = math.exp(-((i-43)/25)**2)
-        amplitude = 3 + envelope * (8 + 20 * abs(math.sin(i * .68)))
-        parts.append(f'<path class="spectrum" d="M{x} {256-amplitude:.1f}V{256+amplitude:.1f}" stroke="url(#signal)" stroke-width="2.6" stroke-linecap="round" opacity="{.25+.5*envelope:.2f}" style="animation-delay:-{i*.13:.2f}s"/>')
-    parts.append('<path d="M30 256H930" stroke="url(#signal)" stroke-opacity=".1"/>')
-    return svg(300, ''.join(parts), '<linearGradient id="petal" x1="450" y1="80" x2="505" y2="165" gradientUnits="userSpaceOnUse"><stop stop-color="#7bd9f5" stop-opacity=".35"/><stop offset="1" stop-color="#b39af7" stop-opacity=".08"/></linearGradient>', '''
-      .orbit { transform-origin:480px 135px; animation:orbit 24s linear infinite; }
-      @keyframes orbit { to { transform:rotate(360deg); } }
+def project_showcase(data: dict) -> str:
+    parts = [panel(526), '<ellipse cx="722" cy="230" rx="410" ry="310" fill="url(#halo)"/>']
+    parts.append('<path d="M30 60H930" stroke="#a995e8" stroke-opacity=".15"/>')
+    parts.append('<circle class="pulse" cx="37" cy="33" r="3" fill="#83e2e4"/>')
+    parts.append(text(51, 38, "共同维护的作品", 12, MUTED))
+    parts.append(text(925, 38, "01 / 项目", 11, MUTED, extra='text-anchor="end"'))
+    parts.append(text(34, 125, "Lin-K Lyrics", 44, INK, 650, 'letter-spacing="-1.5"'))
+    parts.append(text(36, 164, "凛K", 22, LILAC, 600))
+    parts.append(text(36, 211, "卡拉 OK 创作工作台", 18, INK, 500))
+    parts.append(text(36, 240, "从素材下载到 Hi-Res 成品", 14, MUTED))
+    for x, label, width in [(36, "Python", 72), (118, "PyQt6", 69), (197, "C++", 57)]:
+        parts.append(f'<rect x="{x}" y="267" width="{width}" height="28" rx="7" fill="#bda7f3" fill-opacity=".07" stroke="#afa0d5" stroke-opacity=".16"/>')
+        parts.append(text(x+width/2, 286, label, 12, LILAC, extra='text-anchor="middle"'))
+    parts.append('<rect x="36" y="324" width="150" height="40" rx="10" fill="#c3b0ff"/>')
+    parts.append(text(57, 350, "打开项目", 14, "#171629", 650))
+    parts.append(text(158, 350, "↗", 19, "#171629", 600))
+    parts.append(text(36, 399, data["version"], 12, MUTED, extra='class="mono"'))
+    for i in range(28):
+        x = 148 + i*5.7
+        amp = 3 + 10*abs(math.sin(i*.73))*math.exp(-((i-14)/11)**2)
+        parts.append(f'<path class="spectrum" d="M{x:.1f} {395-amp:.1f}V{395+amp:.1f}" stroke="url(#signal)" stroke-width="2" stroke-linecap="round" style="animation-delay:-{i*.14:.2f}s"/>')
+    parts.append('<rect x="354" y="80" width="572" height="366" rx="14" fill="#080d18" stroke="#777295" stroke-opacity=".45"/>')
+    parts.append('<circle cx="370" cy="94" r="2.3" fill="#f0a7c8"/><circle cx="380" cy="94" r="2.3" fill="#c3b0ff"/><circle cx="390" cy="94" r="2.3" fill="#83e2e4"/>')
+    parts.append(text(910, 98, "字幕视频生成", 10, MUTED, extra='text-anchor="end"'))
+    parts.append(f'<image href="data:image/png;base64,{data["screenshot"]}" x="362" y="108" width="556" height="330" preserveAspectRatio="xMidYMid meet"/>')
+    parts.append('<path d="M30 463H930" stroke="#a995e8" stroke-opacity=".15"/>')
+    labels = ["素材下载", "音视频处理", "歌词检索", "歌词打轴", "字幕视频", "Hi-Res 混流"]
+    for i, label in enumerate(labels):
+        x = 36 + i*151
+        parts.append(text(x, 496, f"0{i+1}", 11, BLUE, extra='class="mono"'))
+        parts.append(text(x+28, 496, label, 12, MUTED))
+    return svg(526, ''.join(parts), styles='''
+      .pulse { animation:pulse 4s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity:.3; } }
       .spectrum { transform-box:fill-box; transform-origin:center; animation:spectrum 3s ease-in-out infinite; }
-      @keyframes spectrum { 0%,100% {transform:scaleY(.65)} 50% {transform:scaleY(1)} }
+      @keyframes spectrum { 0%,100% {transform:scaleY(.55)} 50% {transform:scaleY(1)} }
     ''')
 
 
-ICONS = {
-    "followers": '<circle cx="10" cy="8" r="3"/><path d="M4 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-3-5"/>',
-    "repositories": '<path d="M5 3h14v18H6a3 3 0 0 1 0-6h13M5 3v12m4-8h6m-6 3h4"/>',
-    "stars": '<path d="m12 2 3 6.3 7 .9-5 4.9 1.2 6.9-6.2-3.3L5.8 21 7 14.1 2 9.2l7-.9Z"/>',
-    "contributions": '<path d="M2 13h4l3-9 5 17 3-8h5"/>',
-}
-
-
-def icon(name: str, x: float, y: float, scale: float = 1) -> str:
-    return f'<g transform="translate({x} {y}) scale({scale})" stroke="url(#signal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{ICONS[name]}</g>'
-
-
-def metrics(data: dict) -> str:
-    parts = []
-    values = [("followers", data["followers"], "关注者"),
-              ("repositories", data["repositories"], "公开个人仓库"),
-              ("stars", data["stars"], "个人原创公开仓库获星"),
-              ("contributions", data["calendar"]["totalContributions"], "近一年贡献")]
-    for i, (name, value, title) in enumerate(values):
-        x = i * 244
-        parts.append(f'<g><title>{title}</title><rect x="{x+.5}" y=".5" width="227" height="143" rx="18" fill="url(#panel)" stroke="#303653"/>')
-        parts.append(f'<circle cx="{x+34}" cy="34" r="23" fill="#bdacff" opacity=".04"/>')
-        parts.append(icon(name, x+22, 22))
-        parts.append(f'<text x="{x+20}" y="110" fill="{INK}" font-size="38" font-weight="600" letter-spacing="-1">{value:,}</text>')
-        parts.append(f'<path d="M{x+20} 128h32" stroke="url(#signal)" stroke-width="2" stroke-linecap="round"/></g>')
-    return svg(144, ''.join(parts))
-
-
-def activity(calendar: dict) -> str:
-    weeks = calendar["weeks"]
-    days = [d for w in weeks for d in w["contributionDays"]]
-    max_count = max((d["contributionCount"] for d in days), default=0)
-    colors = ["#1c2540", "#3b426f", "#655b9f", "#9b8bdd", "#c6b7ff"]
-    parts = [panel(255), icon("contributions", 28, 23)]
+def development(data: dict) -> str:
+    activity = data["activity"]
+    weeks = activity["contributionCalendar"]["weeks"]
+    days = [day for week in weeks for day in week["contributionDays"]]
+    active_days = sum(day["contributionCount"] > 0 for day in days)
+    commits = activity["totalCommitContributions"]
+    project_commits = next((repo["contributions"]["totalCount"] for repo in activity["commitContributionsByRepository"]
+                            if repo["repository"]["nameWithOwner"] == PROJECT), 0)
     start, end = days[0]["date"].replace("-", "."), days[-1]["date"].replace("-", ".")
-    parts.append(f'<text x="69" y="41" fill="{MUTED}" font-size="13">{start} — {end}</text>')
-    # Fit 53 or 54 weeks without dropping any days.
-    pitch = min(17, 890 / len(weeks))
-    size = pitch - 4
-    x_start = (960 - (len(weeks) * pitch - 4)) / 2
-    for col, week in enumerate(weeks):
-        for day in week["contributionDays"]:
-            row = (date.fromisoformat(day["date"]).weekday() + 1) % 7
-            count = day["contributionCount"]
-            level = 0 if count == 0 else min(4, 1 + int(3 * math.log1p(count) / math.log1p(max_count)))
-            x, y = x_start + col * pitch, 68 + row * pitch
-            parts.append(f'<rect x="{x:.2f}" y="{y:.2f}" width="{size:.2f}" height="{size:.2f}" rx="3" fill="{colors[level]}"><title>{day["date"]}: {count}</title></rect>')
-    # Actual weekly totals, normalized only for the sparkline height.
-    counts = [sum(d["contributionCount"] for d in w["contributionDays"]) for w in weeks]
-    maximum = max(counts, default=1) or 1
-    coordinates = [(x_start + i*pitch + size/2, 224 - value/maximum*25) for i, value in enumerate(counts)]
-    points = ' '.join(f'{x:.2f},{y:.2f}' for x, y in coordinates)
-    fill_points = f'{coordinates[0][0]:.2f},229 {points} {coordinates[-1][0]:.2f},229'
-    parts.append(f'<polygon points="{fill_points}" fill="url(#signal)" opacity=".07"/>')
-    parts.append(f'<polyline points="{points}" stroke="url(#signal)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>')
-    return svg(255, ''.join(parts))
+    parts = [panel(440)]
+    parts.append(text(32, 38, "开发记录", 18, INK, 600))
+    parts.append(text(927, 36, f"{start} — {end}", 11, MUTED,
+                      extra='text-anchor="end" class="mono"'))
+    parts.append(text(32, 118, f"{commits:,}", 51, INK, 600, 'class="mono" letter-spacing="-2"'))
+    parts.append(text(34, 148, "近一年公开提交", 12, MUTED))
+    parts.append('<path d="M34 170H210" stroke="#353c58"/>')
+    parts.append(text(34, 200, "拉取请求", 12, MUTED))
+    parts.append(text(210, 200, activity["totalPullRequestContributions"], 19, BLUE, 600, 'text-anchor="end" class="mono"'))
+    parts.append(text(34, 232, "活跃天数", 12, MUTED))
+    parts.append(text(210, 232, active_days, 19, LILAC, 600, 'text-anchor="end" class="mono"'))
+    parts.append('<path d="M246 76V248" stroke="#353c58"/>')
+    parts.append(text(277, 88, "贡献节奏", 13, INK, 500))
+    parts.append(text(925, 88, "近 26 周 · 每周贡献", 11, MUTED, extra='text-anchor="end"'))
+    recent = weeks[-26:]
+    counts = [sum(day["contributionCount"] for day in week["contributionDays"]) for week in recent]
+    maximum = max(counts, default=0) or 1
+    peak = max(10, math.ceil(maximum/50)*50)
+    for fraction in (0, .5, 1):
+        y = 228 - fraction*111
+        parts.append(f'<path d="M278 {y}H904" stroke="#8794bc" stroke-opacity=".12" stroke-dasharray="3 6"/>')
+        parts.append(text(925, y+4, int(peak*fraction), 10, MUTED, extra='text-anchor="end" class="mono"'))
+    for i, (week, count) in enumerate(zip(recent, counts)):
+        x = 279+i*24
+        height = count/peak*111
+        parts.append(f'<rect x="{x}" y="{228-height:.2f}" width="13" height="{max(height,1):.2f}" rx="3" fill="url(#signal)" opacity="{.9 if count else .12}"><title>{week["contributionDays"][0]["date"]}: {count}</title></rect>')
+    for index, anchor, x in [(0, "start", 278), (13, "middle", 597), (25, "end", 902)]:
+        stamp = date.fromisoformat(recent[index]["contributionDays"][0]["date"])
+        parts.append(text(x, 248, stamp.strftime("%m.%d"), 10, MUTED, extra=f'text-anchor="{anchor}" class="mono"'))
+    share = project_commits/commits if commits else 0
+    parts.append('<rect x="32" y="275" width="896" height="36" rx="8" fill="#c3b0ff" fill-opacity=".055"/>')
+    parts.append(text(46, 298, "Lin-K Lyrics", 12, LILAC, 600))
+    parts.append(text(172, 298, f"{project_commits:,} 次提交", 12, INK, 500))
+    parts.append(text(912, 298, f"占全年公开提交 {share:.1%}", 11, MUTED, extra='text-anchor="end"'))
+    parts.append('<path d="M32 332H928" stroke="#353c58"/>')
+    parts.append(text(32, 359, "Lin-K 代码构成", 13, INK, 500))
+    parts.append(text(927, 359, "GitHub 语言字节数", 10, MUTED, extra='text-anchor="end"'))
+    languages = data["languages"]
+    total = languages["totalSize"]
+    if total:
+        primary = languages["edges"][:2]
+        groups = [(edge["node"]["name"], edge["size"]) for edge in primary]
+        remainder = total-sum(size for _, size in groups)
+        if remainder:
+            groups.append(("其他", remainder))
+        colors = [LILAC, BLUE, "#f0a7c8"]
+        x = 32.0
+        for index, (name, size) in enumerate(groups):
+            width = size/total*896
+            parts.append(f'<rect x="{x:.3f}" y="375" width="{width:.3f}" height="10" fill="{colors[index]}"/>')
+            x += width
+            label_x = 32+index*307
+            parts.append(f'<circle cx="{label_x+4}" cy="409" r="3" fill="{colors[index]}"/>')
+            parts.append(text(label_x+16, 413, f"{name}  {size/total:.1%}", 12, MUTED))
+    else:
+        parts.append(text(32, 403, "暂无语言数据", 12, MUTED))
+    return svg(440, ''.join(parts))
 
 
 def main() -> None:
     data = github_data()
     assets = ROOT / "assets"
     assets.mkdir(exist_ok=True)
-    outputs = {"night-signal.svg": header(), "metrics.svg": metrics(data),
-               "activity.svg": activity(data["calendar"])}
-    # Fetch and render everything before changing any committed assets.
+    outputs = {"project.svg": project_showcase(data), "development.svg": development(data)}
     for name, content in outputs.items():
         normalized = '\n'.join(line.rstrip() for line in content.splitlines()) + '\n'
         (assets / name).write_text(normalized, encoding="utf-8")
-    print(json.dumps({key: data[key] for key in ("followers", "repositories", "stars")} |
-                     {"contributions": data["calendar"]["totalContributions"]}))
+    print(json.dumps({"commits": data["activity"]["totalCommitContributions"],
+                      "pull_requests": data["activity"]["totalPullRequestContributions"],
+                      "version": data["version"]}))
 
 
 if __name__ == "__main__":
