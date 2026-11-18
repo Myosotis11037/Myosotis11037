@@ -210,7 +210,8 @@ def main() -> None:
                "activity.svg": activity(data["calendar"])}
     # Fetch and render everything before changing any committed assets.
     for name, content in outputs.items():
-        (assets / name).write_text(content, encoding="utf-8")
+        normalized = '\n'.join(line.rstrip() for line in content.splitlines()) + '\n'
+        (assets / name).write_text(normalized, encoding="utf-8")
     print(json.dumps({key: data[key] for key in ("followers", "repositories", "stars")} |
                      {"contributions": data["calendar"]["totalContributions"]}))
 

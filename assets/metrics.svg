@@ -6,13 +6,13 @@
   <linearGradient id="signal" x1="0" y1="0" x2="960" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#7bd9f5"/><stop offset=".5" stop-color="#bdacff"/><stop offset="1" stop-color="#ebbbeb"/></linearGradient>
   <radialGradient id="halo"><stop stop-color="#8d79eb" stop-opacity=".32"/><stop offset="1" stop-color="#8d79eb" stop-opacity="0"/></radialGradient>
   <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
-  
+
 </defs>
 <style>
   text { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
   .breathe { animation: breathe 5s ease-in-out infinite; }
   @keyframes breathe { 0%,100% {opacity:.45} 50% {opacity:1} }
-  
+
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 <g><title>关注者</title><rect x="0.5" y=".5" width="227" height="143" rx="18" fill="url(#panel)" stroke="#303653"/><circle cx="34" cy="34" r="23" fill="#bdacff" opacity=".04"/><g transform="translate(22 22) scale(1)" stroke="url(#signal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3"/><path d="M4 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-3-5"/></g><text x="20" y="110" fill="#eef1ff" font-size="38" font-weight="600" letter-spacing="-1">18</text><path d="M20 128h32" stroke="url(#signal)" stroke-width="2" stroke-linecap="round"/></g><g><title>公开个人仓库</title><rect x="244.5" y=".5" width="227" height="143" rx="18" fill="url(#panel)" stroke="#303653"/><circle cx="278" cy="34" r="23" fill="#bdacff" opacity=".04"/><g transform="translate(266 22) scale(1)" stroke="url(#signal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H6a3 3 0 0 1 0-6h13M5 3v12m4-8h6m-6 3h4"/></g><text x="264" y="110" fill="#eef1ff" font-size="38" font-weight="600" letter-spacing="-1">11</text><path d="M264 128h32" stroke="url(#signal)" stroke-width="2" stroke-linecap="round"/></g><g><title>个人原创公开仓库获星</title><rect x="488.5" y=".5" width="227" height="143" rx="18" fill="url(#panel)" stroke="#303653"/><circle cx="522" cy="34" r="23" fill="#bdacff" opacity=".04"/><g transform="translate(510 22) scale(1)" stroke="url(#signal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6.3 7 .9-5 4.9 1.2 6.9-6.2-3.3L5.8 21 7 14.1 2 9.2l7-.9Z"/></g><text x="508" y="110" fill="#eef1ff" font-size="38" font-weight="600" letter-spacing="-1">15</text><path d="M508 128h32" stroke="url(#signal)" stroke-width="2" stroke-linecap="round"/></g><g><title>近一年贡献</title><rect x="732.5" y=".5" width="227" height="143" rx="18" fill="url(#panel)" stroke="#303653"/><circle cx="766" cy="34" r="23" fill="#bdacff" opacity=".04"/><g transform="translate(754 22) scale(1)" stroke="url(#signal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13h4l3-9 5 17 3-8h5"/></g><text x="752" y="110" fill="#eef1ff" font-size="38" font-weight="600" letter-spacing="-1">1,929</text><path d="M752 128h32" stroke="url(#signal)" stroke-width="2" stroke-linecap="round"/></g>
