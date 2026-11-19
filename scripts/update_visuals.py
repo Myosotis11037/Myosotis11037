@@ -115,8 +115,8 @@ def project_showcase(data: dict) -> str:
     parts = [panel(526), '<ellipse cx="722" cy="230" rx="410" ry="310" fill="url(#halo)"/>']
     parts.append('<path d="M30 60H930" stroke="#a995e8" stroke-opacity=".15"/>')
     parts.append('<circle class="pulse" cx="37" cy="33" r="3" fill="#83e2e4"/>')
-    parts.append(text(51, 38, "共同维护的作品", 12, MUTED))
-    parts.append(text(925, 38, "01 / 项目", 11, MUTED, extra='text-anchor="end"'))
+    parts.append(text(51, 38, "Co-maintained project", 12, MUTED))
+    parts.append(text(925, 38, "01 / PROJECT", 11, MUTED, extra='text-anchor="end"'))
     parts.append(text(34, 125, "Lin-K Lyrics", 44, INK, 650, 'letter-spacing="-1.5"'))
     parts.append(text(36, 164, "凛K", 22, LILAC, 600))
     parts.append(text(36, 211, "卡拉 OK 创作工作台", 18, INK, 500))
@@ -125,7 +125,7 @@ def project_showcase(data: dict) -> str:
         parts.append(f'<rect x="{x}" y="267" width="{width}" height="28" rx="7" fill="#bda7f3" fill-opacity=".07" stroke="#afa0d5" stroke-opacity=".16"/>')
         parts.append(text(x+width/2, 286, label, 12, LILAC, extra='text-anchor="middle"'))
     parts.append('<rect x="36" y="324" width="150" height="40" rx="10" fill="#c3b0ff"/>')
-    parts.append(text(57, 350, "打开项目", 14, "#171629", 650))
+    parts.append(text(57, 350, "View project", 14, "#171629", 650))
     parts.append(text(158, 350, "↗", 19, "#171629", 600))
     parts.append(text(36, 399, data["version"], 12, MUTED, extra='class="mono"'))
     for i in range(28):
@@ -160,19 +160,19 @@ def development(data: dict) -> str:
                             if repo["repository"]["nameWithOwner"] == PROJECT), 0)
     start, end = days[0]["date"].replace("-", "."), days[-1]["date"].replace("-", ".")
     parts = [panel(440)]
-    parts.append(text(32, 38, "开发记录", 18, INK, 600))
+    parts.append(text(32, 38, "Development Activity", 18, INK, 600))
     parts.append(text(927, 36, f"{start} — {end}", 11, MUTED,
                       extra='text-anchor="end" class="mono"'))
     parts.append(text(32, 118, f"{commits:,}", 51, INK, 600, 'class="mono" letter-spacing="-2"'))
-    parts.append(text(34, 148, "近一年公开提交", 12, MUTED))
+    parts.append(text(34, 148, "Public commits · past year", 12, MUTED))
     parts.append('<path d="M34 170H210" stroke="#353c58"/>')
-    parts.append(text(34, 200, "拉取请求", 12, MUTED))
+    parts.append(text(34, 200, "Pull Requests", 12, MUTED))
     parts.append(text(210, 200, activity["totalPullRequestContributions"], 19, BLUE, 600, 'text-anchor="end" class="mono"'))
-    parts.append(text(34, 232, "活跃天数", 12, MUTED))
+    parts.append(text(34, 232, "Active Days", 12, MUTED))
     parts.append(text(210, 232, active_days, 19, LILAC, 600, 'text-anchor="end" class="mono"'))
     parts.append('<path d="M246 76V248" stroke="#353c58"/>')
-    parts.append(text(277, 88, "贡献节奏", 13, INK, 500))
-    parts.append(text(925, 88, "近 26 周 · 每周贡献", 11, MUTED, extra='text-anchor="end"'))
+    parts.append(text(277, 88, "Contribution Rhythm", 13, INK, 500))
+    parts.append(text(925, 88, "Weekly contributions · past 26 weeks", 11, MUTED, extra='text-anchor="end"'))
     recent = weeks[-26:]
     counts = [sum(day["contributionCount"] for day in week["contributionDays"]) for week in recent]
     maximum = max(counts, default=0) or 1
@@ -191,11 +191,11 @@ def development(data: dict) -> str:
     share = project_commits/commits if commits else 0
     parts.append('<rect x="32" y="275" width="896" height="36" rx="8" fill="#c3b0ff" fill-opacity=".055"/>')
     parts.append(text(46, 298, "Lin-K Lyrics", 12, LILAC, 600))
-    parts.append(text(172, 298, f"{project_commits:,} 次提交", 12, INK, 500))
-    parts.append(text(912, 298, f"占全年公开提交 {share:.1%}", 11, MUTED, extra='text-anchor="end"'))
+    parts.append(text(172, 298, f"{project_commits:,} commits", 12, INK, 500))
+    parts.append(text(912, 298, f"{share:.1%} of public commits this year", 11, MUTED, extra='text-anchor="end"'))
     parts.append('<path d="M32 332H928" stroke="#353c58"/>')
-    parts.append(text(32, 359, "Lin-K 代码构成", 13, INK, 500))
-    parts.append(text(927, 359, "GitHub 语言字节数", 10, MUTED, extra='text-anchor="end"'))
+    parts.append(text(32, 359, "Lin-K Languages", 13, INK, 500))
+    parts.append(text(927, 359, "By code size · GitHub Linguist", 10, MUTED, extra='text-anchor="end"'))
     languages = data["languages"]
     total = languages["totalSize"]
     if total:
@@ -203,7 +203,7 @@ def development(data: dict) -> str:
         groups = [(edge["node"]["name"], edge["size"]) for edge in primary]
         remainder = total-sum(size for _, size in groups)
         if remainder:
-            groups.append(("其他", remainder))
+            groups.append(("Other", remainder))
         colors = [LILAC, BLUE, "#f0a7c8"]
         x = 32.0
         for index, (name, size) in enumerate(groups):
@@ -214,7 +214,7 @@ def development(data: dict) -> str:
             parts.append(f'<circle cx="{label_x+4}" cy="409" r="3" fill="{colors[index]}"/>')
             parts.append(text(label_x+16, 413, f"{name}  {size/total:.1%}", 12, MUTED))
     else:
-        parts.append(text(32, 403, "暂无语言数据", 12, MUTED))
+        parts.append(text(32, 403, "No language data available", 12, MUTED))
     return svg(440, ''.join(parts))
 
 
