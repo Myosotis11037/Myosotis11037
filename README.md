@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/karaoke-studio/karaoke-studio">
-    <img src="assets/project.svg" width="100%" alt="Lin-K Lyrics 凛K · 卡拉 OK 创作工作台 · 查看项目" />
+    <img src="assets/project.svg" width="100%" alt="Lin-K Lyrics 凛K · 卡拉OK一站式工作台 · 查看项目" />
   </a>
   <p>
     <a href="https://github.com/karaoke-studio/karaoke-studio">Source Code ↗</a>

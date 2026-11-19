@@ -112,14 +112,14 @@ def panel(height: int) -> str:
 
 
 def project_showcase(data: dict) -> str:
-    parts = [panel(526), '<ellipse cx="722" cy="230" rx="410" ry="310" fill="url(#halo)"/>']
+    parts = [panel(470), '<ellipse cx="722" cy="230" rx="410" ry="310" fill="url(#halo)"/>']
     parts.append('<path d="M30 60H930" stroke="#a995e8" stroke-opacity=".15"/>')
     parts.append('<circle class="pulse" cx="37" cy="33" r="3" fill="#83e2e4"/>')
     parts.append(text(51, 38, "Co-maintained project", 12, MUTED))
     parts.append(text(925, 38, "01 / PROJECT", 11, MUTED, extra='text-anchor="end"'))
     parts.append(text(34, 125, "Lin-K Lyrics", 44, INK, 650, 'letter-spacing="-1.5"'))
     parts.append(text(36, 164, "凛K", 22, LILAC, 600))
-    parts.append(text(36, 211, "卡拉 OK 创作工作台", 18, INK, 500))
+    parts.append(text(36, 211, "卡拉OK一站式工作台", 18, INK, 500))
     parts.append(text(36, 240, "从素材下载到 Hi-Res 成品", 14, MUTED))
     for x, label, width in [(36, "Python", 72), (118, "PyQt6", 69), (197, "C++", 57)]:
         parts.append(f'<rect x="{x}" y="267" width="{width}" height="28" rx="7" fill="#bda7f3" fill-opacity=".07" stroke="#afa0d5" stroke-opacity=".16"/>')
@@ -136,13 +136,7 @@ def project_showcase(data: dict) -> str:
     parts.append('<circle cx="370" cy="94" r="2.3" fill="#f0a7c8"/><circle cx="380" cy="94" r="2.3" fill="#c3b0ff"/><circle cx="390" cy="94" r="2.3" fill="#83e2e4"/>')
     parts.append(text(910, 98, "字幕视频生成", 10, MUTED, extra='text-anchor="end"'))
     parts.append(f'<image href="data:image/png;base64,{data["screenshot"]}" x="362" y="108" width="556" height="330" preserveAspectRatio="xMidYMid meet"/>')
-    parts.append('<path d="M30 463H930" stroke="#a995e8" stroke-opacity=".15"/>')
-    labels = ["素材下载", "音视频处理", "歌词检索", "歌词打轴", "字幕视频", "Hi-Res 混流"]
-    for i, label in enumerate(labels):
-        x = 36 + i*151
-        parts.append(text(x, 496, f"0{i+1}", 11, BLUE, extra='class="mono"'))
-        parts.append(text(x+28, 496, label, 12, MUTED))
-    return svg(526, ''.join(parts), styles='''
+    return svg(470, ''.join(parts), styles='''
       .pulse { animation:pulse 4s ease-in-out infinite; }
       @keyframes pulse { 50% { opacity:.3; } }
       .spectrum { transform-box:fill-box; transform-origin:center; animation:spectrum 3s ease-in-out infinite; }
